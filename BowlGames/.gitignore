@@ -1,0 +1,5 @@
+.env
+credentials.json
+answers.json
+results.json
+tblScore.db
