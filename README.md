@@ -74,27 +74,6 @@ node cfb.js
 - tblScore.db
   - The database that holds the results  for each user and their score
 
-## Notes
-1. Adjust the Following Array to fit the number of bowl games
-```
-const game_details = {
-    bowl_game_1: row[3],
-    bowl_game_2: row[4],
-    bowl_game_3: row[5],
-    bowl_game_4: row[6],
-    bowl_game_5: row[7]
-}
-```
-- Repeat pattern for all bowl games
-
-2. Adjust the Following Array to fit the number of bowl games in the array above
-```
-const bowl_games = [
-    'bowl_game_1', 'bowl_game_2', 'bowl_game_3', 'bowl_game_4', 'bowl_game_5'
-]
-```
-- Repeat pattern for all bowl games
-
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
