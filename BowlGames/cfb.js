@@ -1,8 +1,9 @@
 /* 
 Garrett Mastin
-Last Edited: 11/23/2024
+Last Edited: 11/30/2024
 College Football Bowl Game Prediction Program
 */
+
 /*------------------- .env File Dependencies -----------------*/
 
 require('dotenv').config()
@@ -80,17 +81,11 @@ const auth_client = new google.auth.JWT(
                     last_name: row[2]
                 }
 
-                const game_details = {
-                    bowl_game_1: row[3],
-                    bowl_game_2: row[4],
-                    bowl_game_3: row[5],
-                    bowl_game_4: row[6],
-                    bowl_game_5: row[7],
-                    bowl_game_6: row[8],
-                    bowl_game_7: row[9],
-                    bowl_game_8: row[10],
-                    bowl_game_9: row[11],
-                    bowl_game_10: row[12]
+                const game_details = {}
+                
+                for(let i = 3; i < row.length; i++) {
+                    const game = 'bowl_game_' + (i - 2)
+                    game_details[game] = row[i]
                 }
 
                 answers_json.push({
