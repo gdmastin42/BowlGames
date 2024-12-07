@@ -83,45 +83,10 @@ const auth_client = new google.auth.JWT(
                     last_name: row[2]
                 }
 
-                // fix the hard coded bowl games when done with finals
-                const game_details = {
-                    bowl_game_1: row[3],
-                    bowl_game_2: row[4],
-                    bowl_game_3: row[5],
-                    bowl_game_4: row[6],
-                    bowl_game_5: row[7],
-                    bowl_game_6: row[8],
-                    bowl_game_7: row[9],
-                    bowl_game_8: row[10],
-                    bowl_game_9: row[11],
-                    bowl_game_10: row[12],
-                    bowl_game_11: row[13],
-                    bowl_game_12: row[14],
-                    bowl_game_13: row[15],
-                    bowl_game_14: row[16],
-                    bowl_game_15: row[17],
-                    bowl_game_16: row[18],
-                    bowl_game_17: row[19],
-                    bowl_game_18: row[20],
-                    bowl_game_19: row[21],
-                    bowl_game_20: row[22],
-                    bowl_game_21: row[23],
-                    bowl_game_22: row[24],
-                    bowl_game_23: row[25],
-                    bowl_game_24: row[26],
-                    bowl_game_25: row[27],
-                    bowl_game_26: row[28],
-                    bowl_game_27: row[29],
-                    bowl_game_28: row[30],
-                    bowl_game_29: row[31],
-                    bowl_game_30: row[32],
-                    bowl_game_31: row[33],
-                    bowl_game_32: row[34],
-                    bowl_game_33: row[35],
-                    bowl_game_34: row[36],
-                    bowl_game_35: row[37],
-                    bowl_game_36: row[38]
-                }
+                const game_details = {}
+                    for (let i = 3; i < row.length; i++) {
+                        game_details['bowl_game_' + (i-2)] = row[i];
+                    }
 
                 answers_json.push({
                     user_info,
@@ -191,16 +156,7 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
         const answers = JSON.parse(answers_data)
 
-        // fix the hard coded bowl games when done with finals
-        const bowl_games = [
-            'bowl_game_1', 'bowl_game_2', 'bowl_game_3', 'bowl_game_4', 'bowl_game_5',
-            'bowl_game_6', 'bowl_game_7', 'bowl_game_8', 'bowl_game_9', 'bowl_game_10',
-            'bowl_gmae_11', 'bowl_game_12', 'bowl_game_13', 'bowl_game_14', 'bowl_game_15',
-            'bowl_game_16', 'bowl_game_17', 'bowl_game_18', 'bowl_game_19', 'bowl_game_20',
-            'bowl_game_21', 'bowl_game_22', 'bowl_game_23', 'bowl_game_24', 'bowl_game_25',
-            'bowl_game_26', 'bowl_game_27', 'bowl_game_28', 'bowl_game_29', 'bowl_game_30',
-            'bowl_game_31', 'bowl_game_32', 'bowl_game_33', 'bowl_game_34', 'bowl_game_35'
-        ]
+        const bowl_games = []
 
         // Loop through each user
         for (let current_user = 0; current_user < answers.length; current_user++) {
@@ -216,7 +172,6 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
                 // Loop through each game result
                 for (let current_game = 0; current_game < result.length; current_game++) {
-                    let winner
 
                     // finds who won the game and make its equal to "winner"
                     if (result[current_game].homePoints > result[current_game].awayPoints) {
@@ -234,7 +189,6 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
                 // gives points to the user if they predicted the winner of the game
                 if (correct_prediction) {
-                    console.log(total_points_to_player)
                     total_points_to_player++
                 }
             }
