@@ -73,6 +73,8 @@ node cfb.js
   - Results of the CollegeFootballData.com API search results.
 - tblScore.db
   - The database that holds the results  for each user and their score
+## Notes 
+- Some arrays are hard coded sizes and not dynamic(I plan to fix this in the future)
 
 ## Contributing
 
