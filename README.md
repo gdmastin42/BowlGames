@@ -74,7 +74,7 @@ node cfb.js
 - tblScore.db
   - The database that holds the results  for each user and their score
 ## Notes 
-- Some arrays are hard coded sizes and not dynamic(I plan to fix this in the future)
+- Some arrays are hard coded sizes and not dynamic (I plan to fix this in the future)
 
 ## Contributing
 
