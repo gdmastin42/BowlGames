@@ -67,10 +67,12 @@ const auth_client = new google.auth.JWT(
         const res = await service.spreadsheets.values.get({
             auth: auth_client,
             spreadsheetId: SHEET_ID_POLL,
-            range: "A:AM",
+            // range: "A:AM",
+            range: "A:O",
+
 
         })
-
+        
         const answers_json = []
         const rows = res.data.values
 
@@ -81,14 +83,15 @@ const auth_client = new google.auth.JWT(
                 const user_info = {
                     time_stamp: row[0],
                     first_name: row[1],
-                    last_name: row[2]
+                    last_name: row[2],
+                    title_game: row[3]
                 }
 
                 const game_details = {}
                 
                 //makes the answers.json file dynamicly sized
-                for(let i = 3; i < row.length; i++) {
-                    const game = 'bowl_game_' + (i - 2)
+                for(let i = 4; i < row.length; i++) {
+                    let game = 'bowl_game_' + (i - 3)
                     game_details[game] = row[i]
                 }
 
@@ -161,7 +164,11 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
         const answers = JSON.parse(answers_data)
 
         const bowl_games = []
-
+        for (let i = 0; i < result.length; i++) {
+            const game = result[i];
+            bowl_games.push(game.homeTeam, game.awayTeam);
+        }
+        console.log('bowl_games array: ', bowl_games)
         // Loop through each user
         for (let current_user = 0; current_user < answers.length; current_user++) {
 
@@ -169,10 +176,10 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
             // Loop through each bowl game
             for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
-
                 //finds current user's prediction for the current bowl game
-                const user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
+                let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
                 let correct_prediction = false
+                console.log(user_prediction)
 
                 // Loop through each game result
                 for (let current_game = 0; current_game < result.length; current_game++) {
@@ -194,6 +201,7 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
                 // gives points to the user if they predicted the winner of the game
                 if (correct_prediction) {
+                    console.log(total_points_to_player)
                     total_points_to_player++
                 }
             }
