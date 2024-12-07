@@ -80,8 +80,7 @@ const auth_client = new google.auth.JWT(
                 const user_info = {
                     time_stamp: row[0],
                     first_name: row[1],
-                    last_name: row[2],
-                    title_game: row[3]
+                    last_name: row[2]
                 }
 
                 // fix the hard coded bowl games when done with finals
@@ -121,7 +120,7 @@ const auth_client = new google.auth.JWT(
                     bowl_game_33: row[35],
                     bowl_game_34: row[36],
                     bowl_game_35: row[37],
-                    bowl_game_36: row[38],
+                    bowl_game_36: row[38]
                 }
 
                 answers_json.push({
@@ -210,10 +209,10 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
             // Loop through each bowl game
             for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
+
                 //finds current user's prediction for the current bowl game
                 let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
                 let correct_prediction = false
-                console.log(user_prediction)
 
                 // Loop through each game result
                 for (let current_game = 0; current_game < result.length; current_game++) {
