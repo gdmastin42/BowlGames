@@ -1,8 +1,9 @@
 /* 
 Garrett Mastin
-Last Edited: 11/23/2024
+Last Edited: 11/30/2024
 College Football Bowl Game Prediction Program
 */
+
 /*------------------- .env File Dependencies -----------------*/
 
 require('dotenv').config()
@@ -25,7 +26,7 @@ const credentials = require("./credentials.json")
 /*-------------------- SQLite Dependencies -------------------*/
 
 const sqlite3 = require('sqlite3').verbose()
-var db_exists = fs.existsSync('tblScore.db')
+let db_exists = fs.existsSync('tblScore.db')
 
 /*----------------------- SQL Commands -----------------------*/
 
@@ -33,7 +34,7 @@ if (!db_exists) {
     fs.openSync('tblScore.db', 'w')
 }
 
-var db = new sqlite3.Database('tblScore.db')
+let db = new sqlite3.Database('tblScore.db')
 
 const create_table = `
     CREATE TABLE tblScore (
@@ -56,17 +57,19 @@ const auth_client = new google.auth.JWT(
     ["https://www.googleapis.com/auth/spreadsheets"]
 )
 
+// function finds the answers google form poll and writes the answers to a json file
 ;(async function () {
     try {
         const token = await auth_client.authorize()
         auth_client.setCredentials(token)
 
+        // specify the spreadsheet and range to get the data from
         const res = await service.spreadsheets.values.get({
             auth: auth_client,
             spreadsheetId: SHEET_ID_POLL,
             range: "A:AM",
         })
-
+        
         const answers_json = []
         const rows = res.data.values
 
@@ -77,7 +80,8 @@ const auth_client = new google.auth.JWT(
                 const user_info = {
                     time_stamp: row[0],
                     first_name: row[1],
-                    last_name: row[2]
+                    last_name: row[2],
+                    title_game: row[3]
                 }
 
                 // fix the hard coded bowl games when done with finals
@@ -128,9 +132,9 @@ const auth_client = new google.auth.JWT(
         } 
 
         fs.writeFileSync("answers.json", JSON.stringify(answers_json, null, 2))
+
     } catch (error) {
-        console.log(error)
-        process.exit(1)
+        console.error('Error with Poll:', error.message);
     }
 })()
 
@@ -144,10 +148,10 @@ api_key_auth.apiKey = API_KEY
 const api_instance = new cfb.GamesApi()
 const year = 2024
 
+// gets the results of the games for the CollegeFootball API and writes it to results.json
 async function fetch_games() {
     try {
-        const games = await api_instance.getGames(year)
-
+        // search filter for the games 
         const opts = {
             week: 13,
             seasonType: "regular",
@@ -162,7 +166,7 @@ async function fetch_games() {
             }
         })
     } catch (error) {
-        console.error('Error calling API:', error);
+        console.error('Error calling API:', error.message);
     }
 }
 
@@ -202,44 +206,50 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
         // Loop through each user
         for (let current_user = 0; current_user < answers.length; current_user++) {
 
-            let time_stamp = answers[current_user].user_info.time_stamp
             let total_points_to_player = 0
 
             // Loop through each bowl game
             for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
-
-                const user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
-
+                //finds current user's prediction for the current bowl game
+                let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
                 let correct_prediction = false
+                console.log(user_prediction)
 
                 // Loop through each game result
                 for (let current_game = 0; current_game < result.length; current_game++) {
                     let winner
+
+                    // finds who won the game and make its equal to "winner"
                     if (result[current_game].homePoints > result[current_game].awayPoints) {
                         winner = result[current_game].homeTeam
                     } else if (result[current_game].homePoints < result[current_game].awayPoints) {
                         winner = result[current_game].awayTeam
                     }
 
+                    // checks if the winner of the game is equal to the user's prediction
                     if (winner === user_prediction) {
                         correct_prediction = true
                         break
                     }
                 }
 
+                // gives points to the user if they predicted the winner of the game
                 if (correct_prediction) {
+                    console.log(total_points_to_player)
                     total_points_to_player++
                 }
             }
 
+            // pushes the user's first name, last name, and total points to the info_for_update array
             info_for_update.push([
                 answers[current_user].user_info.first_name,
                 answers[current_user].user_info.last_name,
                 total_points_to_player
             ])
 
+            // inserts data to tblScore
             db.run('INSERT OR IGNORE INTO tblScore (time_stamp, first_name, last_name, score) VALUES (?, ?, ?, ?)', [
-                time_stamp,
+                answers[current_user].user_info.time_stamp,
                 answers[current_user].user_info.first_name,
                 answers[current_user].user_info.last_name,
                 total_points_to_player
@@ -252,12 +262,13 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
 /*--------------------- Update Sheet ------------------------*/
 
+// function that updates the google sheet 
 async function update_sheet() {
     try {
-        const response = await service.spreadsheets.values.update({
+        await service.spreadsheets.values.update({
             auth: auth_client,
-            spreadsheetId: SHEET_ID_SCORES
-            ,
+            // specify the spreadsheet and range to update the data
+            spreadsheetId: SHEET_ID_SCORES,
             range: 'A:C',
             valueInputOption: 'RAW',
 
