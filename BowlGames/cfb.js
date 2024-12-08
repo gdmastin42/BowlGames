@@ -247,3 +247,5 @@ async function update_sheet() {
         console.error('Error updating sheet:', error.message)
     }
 }
+
+console.log("Program finished with out error")
