@@ -101,7 +101,7 @@ const auth_client = new google.auth.JWT(
         fs.writeFileSync("answers.json", JSON.stringify(answers_json, null, 2))
 
     } catch (error) {
-        console.error('Error with Poll:', error.message);
+        console.error('Error with Poll:', error.message)
     }
 })()
 
@@ -122,20 +122,23 @@ async function fetch_games() {
 
         // search filter for the games 
         const opts = {
-            week: 13,
-            seasonType: "regular",
-            conference: "SEC",
+            seasonType: "postseason"
         }
 
-        const games_with_opts = await api_instance.getGames(year, opts);
+        const games_with_opts = await api_instance.getGames(year, opts)
 
-        fs.writeFile('results.json', JSON.stringify(games_with_opts, null, 2), (err) => {
+        // filters out playoff games
+        const filtered_bowl_games = games_with_opts.filter(
+            (game) => game.notes && !game.notes.includes('College Football Playoff')
+        )
+
+        fs.writeFile('results.json', JSON.stringify(filtered_bowl_games, null, 2), (err) => {
             if (err) {
-                console.error('Error writing results.json:', err);
+                console.error('Error writing results.json:', err)
             }
         })
     } catch (error) {
-        console.error('Error calling API:', error.message);
+        console.error('Error calling API:', error.message)
     }
 }
 
