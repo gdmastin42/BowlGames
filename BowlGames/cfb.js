@@ -1,6 +1,6 @@
 /* 
 Garrett Mastin
-Last Edited: 11/30/2024
+Last Edited: 12/8/2024
 College Football Bowl Game Prediction Program
 */
 
@@ -11,6 +11,7 @@ require('dotenv').config()
 const API_KEY = process.env.API_KEY_CFB
 const SHEET_ID_SCORES = process.env.SHEET_ID_SCORES
 const SHEET_ID_POLL = process.env.SHEET_ID_POLL
+const TITLE_WINNER = "Set Equal to Winner"
 
 /*-------------------- CFBD Dependencies ---------------------*/
 
@@ -67,7 +68,7 @@ const auth_client = new google.auth.JWT(
         const res = await service.spreadsheets.values.get({
             auth: auth_client,
             spreadsheetId: SHEET_ID_POLL,
-            range: "A:AM",
+            range: "A:AN",
         })
         
         const answers_json = []
@@ -80,12 +81,14 @@ const auth_client = new google.auth.JWT(
                 const user_info = {
                     time_stamp: row[0],
                     first_name: row[1],
-                    last_name: row[2]
+                    last_name: row[2],
+                    title_winner: row[3]
                 }
 
+                // adds the bowl games dynamically from the google form 
                 const game_details = {}
-                    for (let i = 3; i < row.length; i++) {
-                        game_details['bowl_game_' + (i-2)] = row[i];
+                    for (let i = 4; i < row.length; i++) {
+                        game_details['bowl_game_' + (i-3)] = row[i];
                     }
 
                 answers_json.push({
@@ -110,11 +113,13 @@ const api_key_auth = default_client.authentications['ApiKeyAuth']
 api_key_auth.apiKey = API_KEY
 
 const api_instance = new cfb.GamesApi()
+
 const year = 2024
 
 // gets the results of the games for the CollegeFootball API and writes it to results.json
 async function fetch_games() {
     try {
+
         // search filter for the games 
         const opts = {
             week: 13,
@@ -158,22 +163,28 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
 
         const bowl_games = []
 
-        // Loop through each user
+        // Loops through each user
         for (let current_user = 0; current_user < answers.length; current_user++) {
-
+            
+            // makes sure to reset the points at the begining of each player loop to ensure everyone has their own score
             let total_points_to_player = 0
 
-            // Loop through each bowl game
+            // TITLE_WINNER is worth 5 points and is updated at the top of the file where the .env file depencicies are
+            if (answers[current_user].user_info.title_winner == TITLE_WINNER) {
+                total_points_to_player += 5
+            }
+
+            // Loops through each bowl game
             for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
 
                 //finds current user's prediction for the current bowl game
                 let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
                 let correct_prediction = false
 
-                // Loop through each game result
+                // Loops through each game result
                 for (let current_game = 0; current_game < result.length; current_game++) {
 
-                    // finds who won the game and make its equal to "winner"
+                    // finds who won the game and make its equal to "winner" by comparing away and home points 
                     if (result[current_game].homePoints > result[current_game].awayPoints) {
                         winner = result[current_game].homeTeam
                     } else if (result[current_game].homePoints < result[current_game].awayPoints) {
@@ -185,13 +196,14 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
                         correct_prediction = true
                         break
                     }
-                }
+                } // ends for loop that finds the winner
 
                 // gives points to the user if they predicted the winner of the game
                 if (correct_prediction) {
                     total_points_to_player++
                 }
-            }
+
+            } // ends for loop for each bowl game
 
             // pushes the user's first name, last name, and total points to the info_for_update array
             info_for_update.push([
@@ -207,11 +219,12 @@ fs.readFile('results.json', 'utf-8', (err, results_data) => {
                 answers[current_user].user_info.last_name,
                 total_points_to_player
             ])
-        }
+        }// ends for loop for each player
 
         await update_sheet()
-    })
-})
+
+    })// ends answers.json read function
+})// ends results.json read function
 
 /*--------------------- Update Sheet ------------------------*/
 
@@ -222,7 +235,7 @@ async function update_sheet() {
             auth: auth_client,
             // specify the spreadsheet and range to update the data
             spreadsheetId: SHEET_ID_SCORES,
-            range: 'A:C',
+            range: 'A2:C',//A2 makes sure it doesnt overwrite the header of the sheet
             valueInputOption: 'RAW',
 
             requestBody: {
