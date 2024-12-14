@@ -93,7 +93,12 @@ async function fetch_answers() {
             }
         }
 
-        fs.writeFileSync('answers.json', JSON.stringify(answers_json, null, 2))
+        fs.writeFileSync('answers.json', JSON.stringify(answers_json, null, 2), (err) => {
+            if (err) {
+                console.error('Error writing answers.json:', err)
+            }
+        })
+
     } catch (error) {
         console.error('Error With reading poll results:', error.message)
     }
@@ -169,8 +174,8 @@ async function fetch_prediction_results() {
                 const answers = JSON.parse(answers_data)
 
                 const bowl_games = []
-                const TITLE_WINNER = 'Set Equal to Winner'
                 const info_for_update = []
+                const TITLE_WINNER = 'Set Equal to Winner'
 
                 // Loops through each user
                 for (let current_user = 0; current_user < answers.length; current_user++) {
@@ -181,8 +186,8 @@ async function fetch_prediction_results() {
                     }
 
                     // Loops through each bowl game
-                    for (let current_user_choice = 0;current_user_choice < bowl_games.length;current_user_choice++) {
-                        let user_prediction =answers[current_user].game_details[bowl_games[current_user_choice]]
+                    for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
+                        let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
                         let correct_prediction = false
 
                         // Loops through each game result
