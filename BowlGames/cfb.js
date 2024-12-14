@@ -172,9 +172,8 @@ async function fetch_prediction_results() {
                 }
 
                 const answers = JSON.parse(answers_data)
-
-                const bowl_games = []
-                const info_for_update = []
+                
+                let info_for_update = []
                 const TITLE_WINNER = 'Set Equal to Winner'
 
                 // Loops through each user
@@ -185,9 +184,15 @@ async function fetch_prediction_results() {
                         total_points_to_player += 5
                     }
 
+                    const game_details = answers[current_user].game_details
+                    const game_keys = Object.keys(game_details)  
+
                     // Loops through each bowl game
-                    for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
-                        let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
+                    for (let current_user_choice = 0; current_user_choice < game_keys.length; current_user_choice++) {
+                        
+                        const game_key = game_keys[current_user_choice]
+                        const user_prediction = game_details[game_key]
+
                         let correct_prediction = false
 
                         // Loops through each game result
