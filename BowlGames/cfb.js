@@ -29,6 +29,7 @@ const auth_client = new google.auth.JWT(
     credentials.private_key.replace(/\\n/g, '\n'),
     ['https://www.googleapis.com/auth/spreadsheets']
 )
+
 /*----------------------- SQL Commands -----------------------*/
 
 const sqlite3 = require('sqlite3').verbose()
@@ -46,6 +47,8 @@ if (!db_exists) {
 
     db.run(create_table)
 }
+
+/*-------------------------- Main Code -------------------------*/
 
 /**
  * This function uses the Google Sheets API to retrieve all responses from
@@ -178,6 +181,7 @@ async function fetch_prediction_results() {
 
                 // Loops through each user
                 for (let current_user = 0; current_user < answers.length; current_user++) {
+                    
                     let total_points_to_player = 0
 
                     if (answers[current_user].user_info.title_winner == TITLE_WINNER) {
@@ -220,16 +224,29 @@ async function fetch_prediction_results() {
                         answers[current_user].user_info.last_name,
                         total_points_to_player
                     ])
-            
-                    db.run(
-                        'INSERT OR IGNORE INTO tblScore (time_stamp, first_name, last_name, score) VALUES (?, ?, ?, ?)',
-                        [
-                            answers[current_user].user_info.time_stamp,
-                            answers[current_user].user_info.first_name,
-                            answers[current_user].user_info.last_name,
-                            total_points_to_player
-                        ]
-                    )
+                    
+                    if (db_exists) {
+                        db.run(`
+                            UPDATE tblScore 
+                            SET score = ?
+                            WHERE first_name = ? AND last_name = ?
+                            `,  
+                            total_points_to_player, 
+                            answers[current_user].user_info.first_name, 
+                            answers[current_user].user_info.last_name
+                        )
+                        
+                    } else {
+                        db.run(
+                            'INSERT OR IGNORE INTO tblScore (time_stamp, first_name, last_name, score) VALUES (?, ?, ?, ?)',
+                            [
+                                answers[current_user].user_info.time_stamp,
+                                answers[current_user].user_info.first_name,
+                                answers[current_user].user_info.last_name,
+                                total_points_to_player
+                            ]
+                        )
+                    }
                 }
 
                 await update_sheet(info_for_update) // updates the scores spreadsheet
@@ -254,6 +271,9 @@ fetch_prediction_results()
  */
 async function update_sheet(info_for_update) {
     try {
+
+        //takes the array info_for_update and sorts based off the total_points_to_player in decending order
+        info_for_update.sort((currentRow, nextRow) => nextRow[2] - currentRow[2])
 
         await service.spreadsheets.values.update({
             auth: auth_client,
