@@ -1,8 +1,8 @@
-/* 
-Garrett Mastin
-Last Edited: 12/8/2024
-College Football Bowl Game Prediction Program
-*/
+/**
+ * Garrett Mastin
+ * Last Edited: 12/10/2024
+ * College Football Bowl Game Prediction Program
+ */
 
 /*------------------- .env File Dependencies -----------------*/
 
@@ -11,7 +11,6 @@ require('dotenv').config()
 const API_KEY = process.env.API_KEY_CFB
 const SHEET_ID_SCORES = process.env.SHEET_ID_SCORES
 const SHEET_ID_POLL = process.env.SHEET_ID_POLL
-const TITLE_WINNER = "Set Equal to Winner"
 
 /*-------------------- CFBD Dependencies ---------------------*/
 
@@ -20,57 +19,57 @@ const fs = require('fs')
 
 /*---------------- Google Sheets API Dependencies ------------*/
 
-const { google } = require("googleapis")
-const service = google.sheets("v4")
-const credentials = require("./credentials.json")
-
-/*-------------------- SQLite Dependencies -------------------*/
-
-const sqlite3 = require('sqlite3').verbose()
-let db_exists = fs.existsSync('tblScore.db')
-
-/*----------------------- SQL Commands -----------------------*/
-
-if (!db_exists) {
-    fs.openSync('tblScore.db', 'w')
-}
-
-let db = new sqlite3.Database('tblScore.db')
-
-const create_table = `
-    CREATE TABLE tblScore (
-        time_stamp TEXT PRIMARY KEY UNIQUE,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
-        score INTEGER NOT NULL
-    )`
-
-if (!db_exists) {
-    db.run(create_table)
-}
-
-/*------------------- Google Sheets API ----------------------*/
-
+const { google } = require('googleapis')
+const service = google.sheets('v4')
+const credentials = require('./credentials.json')
+  
 const auth_client = new google.auth.JWT(
     credentials.client_email,
     null,
-    credentials.private_key.replace(/\\n/g, "\n"),
-    ["https://www.googleapis.com/auth/spreadsheets"]
+    credentials.private_key.replace(/\\n/g, '\n'),
+    ['https://www.googleapis.com/auth/spreadsheets']
 )
 
-// function finds the answers google form poll and writes the answers to a json file
-;(async function () {
+/*----------------------- SQL Commands -----------------------*/
+
+const sqlite3 = require('sqlite3').verbose()
+let db_exists = fs.existsSync('tblScore.db')
+let db = new sqlite3.Database('tblScore.db')
+
+if (!db_exists) {
+    const create_table = `
+        CREATE TABLE tblScore (
+            time_stamp TEXT PRIMARY KEY UNIQUE,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            score INTEGER NOT NULL
+        )`
+
+    db.run(create_table)
+}
+
+/*-------------------------- Main Code -------------------------*/
+
+/**
+ * This function uses the Google Sheets API to retrieve all responses from
+ * a Google Sheets document containing the poll answers. It then processes the
+ * data and writes it to a local JSON file ('answers.json') for further
+ * processing.
+ *
+ * @returns {Promise<void>} resolves once the responses are successfully written to answers.json
+ */
+async function fetch_answers() {
     try {
+
         const token = await auth_client.authorize()
         auth_client.setCredentials(token)
 
-        // specify the spreadsheet and range to get the data from
         const res = await service.spreadsheets.values.get({
             auth: auth_client,
             spreadsheetId: SHEET_ID_POLL,
-            range: "A:AN",
+            range: 'A:AN'
         })
-        
+
         const answers_json = []
         const rows = res.data.values
 
@@ -85,51 +84,57 @@ const auth_client = new google.auth.JWT(
                     title_winner: row[3]
                 }
 
-                // adds the bowl games dynamically from the google form 
                 const game_details = {}
-                    for (let i = 4; i < row.length; i++) {
-                        game_details['bowl_game_' + (i-3)] = row[i];
-                    }
+                for (let i = 4; i < row.length; i++) {
+                    game_details['bowl_game_' + (i - 3)] = row[i]
+                }
 
                 answers_json.push({
                     user_info,
                     game_details
                 })
             }
-        } 
+        }
 
-        fs.writeFileSync("answers.json", JSON.stringify(answers_json, null, 2))
+        fs.writeFileSync('answers.json', JSON.stringify(answers_json, null, 2), (err) => {
+            if (err) {
+                console.error('Error writing answers.json:', err)
+            }
+        })
 
     } catch (error) {
-        console.error('Error with Poll:', error.message)
+        console.error('Error With reading poll results:', error.message)
     }
-})()
+}
 
-/*---------------- College Football API ----------------------*/
+fetch_answers()
 
-const default_client = cfb.ApiClient.instance
-
-const api_key_auth = default_client.authentications['ApiKeyAuth']
-api_key_auth.apiKey = API_KEY
-
-const api_instance = new cfb.GamesApi()
-
-const year = 2024
-
-// gets the results of the games for the CollegeFootball API and writes it to results.json
+/**
+ * This function interacts with the CollegeFootball API to retrieve the results
+ * of all postseason games for the specified year. The relevant results are then
+ * filtered and written to a local JSON file ('results.json') for further use.
+ *
+ * @returns {Promise<void>} resolves when the results are successfully written to the 'results.json' file.
+ */
 async function fetch_games() {
     try {
+        const default_client = cfb.ApiClient.instance
 
-        // search filter for the games 
+        const api_key_auth = default_client.authentications['ApiKeyAuth']
+        api_key_auth.apiKey = API_KEY
+
+        const api_instance = new cfb.GamesApi()
+
+        const year = 2024
+
         const opts = {
-            seasonType: "postseason"
+            seasonType: 'postseason'
         }
 
         const games_with_opts = await api_instance.getGames(year, opts)
 
-        // filters out playoff games
-        const filtered_bowl_games = games_with_opts.filter(
-            (game) => game.notes && !game.notes.includes('College Football Playoff')
+        const filtered_bowl_games = games_with_opts.filter((game) =>
+                game.notes && !game.notes.includes('College Football Playoff')
         )
 
         fs.writeFile('results.json', JSON.stringify(filtered_bowl_games, null, 2), (err) => {
@@ -137,118 +142,151 @@ async function fetch_games() {
                 console.error('Error writing results.json:', err)
             }
         })
+        
     } catch (error) {
-        console.error('Error calling API:', error.message)
+        console.error('Error calling CollegeFootballData API:', error.message)
     }
 }
 
 fetch_games()
 
-/*--------------------- Reading JSONs ------------------------*/
-
-const info_for_update = []
-
-fs.readFile('results.json', 'utf-8', (err, results_data) => {
-    if (err) {
-        console.error('Error reading results.json:', err)
-        return
-    }
-
-    const result = JSON.parse(results_data)
-
-    fs.readFile('answers.json', 'utf-8', async (err, answers_data) => {
-        if (err) {
-            console.error('Error reading answers.json:', err)
-            return
-        }
-
-        const answers = JSON.parse(answers_data)
-
-        const bowl_games = []
-
-        // Loops through each user
-        for (let current_user = 0; current_user < answers.length; current_user++) {
-            
-            // makes sure to reset the points at the begining of each player loop to ensure everyone has their own score
-            let total_points_to_player = 0
-
-            // TITLE_WINNER is worth 5 points and is updated at the top of the file where the .env file depencicies are
-            if (answers[current_user].user_info.title_winner == TITLE_WINNER) {
-                total_points_to_player += 5
+/**
+ * This function reads both the game results (results.json and user predictions,
+ * (answers.json) compares them, and assigns points to each user based on how accurate
+ * their predictions were. It then updates the local SQLite database and the Google
+ * Sheets document with the calculated scores. 
+ * 
+ * @returns {Promise<void>} resolves when the prediction results are successfully calculated and stored.
+ */
+async function fetch_prediction_results() {
+    try {
+        fs.readFile('results.json', 'utf-8', (err, results_data) => {
+            if (err) {
+                console.error('Error reading results.json:', err)
+                return
             }
 
-            // Loops through each bowl game
-            for (let current_user_choice = 0; current_user_choice < bowl_games.length; current_user_choice++) {
+            const result = JSON.parse(results_data)
 
-                //finds current user's prediction for the current bowl game
-                let user_prediction = answers[current_user].game_details[bowl_games[current_user_choice]]
-                let correct_prediction = false
-
-                // Loops through each game result
-                for (let current_game = 0; current_game < result.length; current_game++) {
-
-                    // finds who won the game and make its equal to "winner" by comparing away and home points 
-                    if (result[current_game].homePoints > result[current_game].awayPoints) {
-                        winner = result[current_game].homeTeam
-                    } else if (result[current_game].homePoints < result[current_game].awayPoints) {
-                        winner = result[current_game].awayTeam
-                    }
-
-                    // checks if the winner of the game is equal to the user's prediction
-                    if (winner === user_prediction) {
-                        correct_prediction = true
-                        break
-                    }
-                } // ends for loop that finds the winner
-
-                // gives points to the user if they predicted the winner of the game
-                if (correct_prediction) {
-                    total_points_to_player++
+            fs.readFile('answers.json', 'utf-8', async (err, answers_data) => {
+                if (err) {
+                    console.error('Error reading answers.json:', err)
+                    return
                 }
 
-            } // ends for loop for each bowl game
+                const answers = JSON.parse(answers_data)
+                
+                let info_for_update = []
+                const TITLE_WINNER = 'Set Equal to Winner'
 
-            // pushes the user's first name, last name, and total points to the info_for_update array
-            info_for_update.push([
-                answers[current_user].user_info.first_name,
-                answers[current_user].user_info.last_name,
-                total_points_to_player
-            ])
+                // Loops through each user
+                for (let current_user = 0; current_user < answers.length; current_user++) {
+                    
+                    let total_points_to_player = 0
 
-            // inserts data to tblScore
-            db.run('INSERT OR IGNORE INTO tblScore (time_stamp, first_name, last_name, score) VALUES (?, ?, ?, ?)', [
-                answers[current_user].user_info.time_stamp,
-                answers[current_user].user_info.first_name,
-                answers[current_user].user_info.last_name,
-                total_points_to_player
-            ])
-        }// ends for loop for each player
+                    if (answers[current_user].user_info.title_winner == TITLE_WINNER) {
+                        total_points_to_player += 5
+                    }
 
-        await update_sheet()
+                    const game_details = answers[current_user].game_details
+                    const game_keys = Object.keys(game_details)  
 
-    })// ends answers.json read function
-})// ends results.json read function
+                    // Loops through each bowl game
+                    for (let current_user_choice = 0; current_user_choice < game_keys.length; current_user_choice++) {
+                        
+                        const game_key = game_keys[current_user_choice]
+                        const user_prediction = game_details[game_key]
 
-/*--------------------- Update Sheet ------------------------*/
+                        let correct_prediction = false
 
-// function that updates the google sheet 
-async function update_sheet() {
-    try {
-        await service.spreadsheets.values.update({
-            auth: auth_client,
-            // specify the spreadsheet and range to update the data
-            spreadsheetId: SHEET_ID_SCORES,
-            range: 'A2:C',//A2 makes sure it doesnt overwrite the header of the sheet
-            valueInputOption: 'RAW',
+                        // Loops through each game result
+                        for (let current_game = 0; current_game < result.length; current_game++) {
 
-            requestBody: {
-                values: info_for_update,
-            },
+                            if (result[current_game].homePoints > result[current_game].awayPoints) {
+                                winner = result[current_game].homeTeam
+                            } else if (result[current_game].homePoints < result[current_game].awayPoints) {
+                                winner = result[current_game].awayTeam
+                            }
+
+                            if (winner === user_prediction) {
+                                correct_prediction = true
+                                break
+                            }
+                        } 
+
+                        if (correct_prediction) {
+                            total_points_to_player++
+                        }
+                    }
+
+                    info_for_update.push([
+                        answers[current_user].user_info.first_name,
+                        answers[current_user].user_info.last_name,
+                        total_points_to_player
+                    ])
+                    
+                    if (db_exists) {
+                        db.run(`
+                            UPDATE tblScore 
+                            SET score = ?
+                            WHERE first_name = ? AND last_name = ?
+                            `,  
+                            total_points_to_player, 
+                            answers[current_user].user_info.first_name, 
+                            answers[current_user].user_info.last_name
+                        )
+                        
+                    } else {
+                        db.run(
+                            'INSERT OR IGNORE INTO tblScore (time_stamp, first_name, last_name, score) VALUES (?, ?, ?, ?)',
+                            [
+                                answers[current_user].user_info.time_stamp,
+                                answers[current_user].user_info.first_name,
+                                answers[current_user].user_info.last_name,
+                                total_points_to_player
+                            ]
+                        )
+                    }
+                }
+
+                await update_sheet(info_for_update) // updates the scores spreadsheet
+            })
         })
 
     } catch (error) {
-        console.error('Error updating sheet:', error.message)
+        console.error('Error calulating results:', error.message)
     }
 }
 
-console.log("Program finished with out error")
+fetch_prediction_results()
+
+/**
+ * This function updates the Google Sheets document with the
+ * score results of all users.
+ *
+ * @param {Array<Array<string|number>>} info_for_update - An array of arrays where each sub-array
+ *  contains the first name (string), last name (string), and score (number) of a user.
+ * 
+ * @returns {Promise<void>} resolves when the sheet has been updated successfully.
+ */
+async function update_sheet(info_for_update) {
+    try {
+
+        //takes the array info_for_update and sorts based off the total_points_to_player in decending order
+        info_for_update.sort((currentRow, nextRow) => nextRow[2] - currentRow[2])
+
+        await service.spreadsheets.values.update({
+            auth: auth_client,
+            spreadsheetId: SHEET_ID_SCORES,
+            range: 'A2:C', 
+            valueInputOption: 'RAW',
+
+            requestBody: {
+                values: info_for_update
+            }
+        })
+
+    } catch (error) {
+        console.error('Error With updating score spreadsheet:', error.message)
+    }
+}
